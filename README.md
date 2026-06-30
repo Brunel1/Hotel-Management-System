@@ -174,3 +174,15 @@ Ce projet est sous licence MIT.
 - **Mot de passe**: Admin123!
 
 ⚠️ **Important**: Changez ces identifiants en production !
+
+## 👨‍💻 Développeur
+
+- **Nom**: Hervé Brunel
+- **GitHub**: https://github.com/Brunel1
+
+## 📞 Contact
+
+Pour toute question ou suggestion :
+- **Téléphone**: +261 32 25 410 02
+- **GitHub Issues**: Ouvrez une issue sur le dépôt GitHub
+- **Email**: herve@hotel.mg
