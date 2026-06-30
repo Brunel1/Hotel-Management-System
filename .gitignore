@@ -1,0 +1,61 @@
+# Fichiers et répertoires à ignorer pour Git
+# Protection des données sensibles et fichiers de build
+
+# Dépendances
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Tests
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Fichiers système
+.DS_Store
+*.pem
+Thumbs.db
+
+# Logs de debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Variables d'environnement (DONNÉES SENSIBLES)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.envs.ly/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma (fichiers générés et base de données)
+/src/generated/prisma
+prisma/*.db
+prisma/*.db-journal
+prisma/migrations/
+
+# Scripts temporaires dans le dossier scripts
+/scripts/*.ts
+
+# Cache
+.turbo
+.cache

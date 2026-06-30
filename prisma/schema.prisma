@@ -1,0 +1,798 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                   String               @id @default(cuid())
+  email                String               @unique
+  password             String
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  roleId               String?
+  twoFactorEnabled     Boolean              @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes String
+  auditLogs            AuditLog[]
+  bookings             Booking[]
+  crmRecord            CRMRecord?
+  chatMessages         ChatMessage[]
+  housekeepingRecords  HousekeepingRecord[] @relation("HousekeepingRecords")
+  loyaltyPoints        LoyaltyPoint?
+  maintenanceTasks     MaintenanceTask[]    @relation("MaintenanceTasks")
+  notifications        Notification[]
+  payments             Payment[]
+  posTransactions      PosTransaction[]     @relation("PosTransactions")
+  profile              Profile?
+  pushSubscriptions    PushSubscription[]
+  rfidCards            RFIDCard[]
+  referral             Referral?
+  restaurantOrders     RestaurantOrder[]    @relation("RestaurantOrders")
+  reviews              Review[]
+  schedules            Schedule[]
+  assignedTasks        Task[]
+  role                 Role?                @relation(fields: [roleId], references: [id])
+  waitlists            Waitlist[]
+}
+
+model Profile {
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  firstName               String
+  lastName                String
+  phone                   String?
+  address                 String?
+  city                    String?
+  country                 String?
+  postalCode              String?
+  dateOfBirth             DateTime?
+  allergies               String
+  bedType                 String?
+  smokingPreference       String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  currencyPreference      String?
+  dietaryRestrictions     String?
+  favoriteRoomIds         String?
+  languagePreference      String?
+  notificationPreferences String?
+  preferredFloor          Int?
+  preferredRoomType       String?
+  preferredView           String?
+  specialRequests         String?
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Room {
+  id                  String               @id @default(cuid())
+  number              String               @unique
+  type                RoomType
+  capacity            Int
+  pricePerNight       Decimal
+  floor               Int?
+  description         String
+  isActive            Boolean              @default(true)
+  images              String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  bookings            Booking[]
+  channelRooms        ChannelRoom[]
+  housekeepingRecords HousekeepingRecord[]
+  maintenanceTasks    MaintenanceTask[]
+  reviews             Review[]
+  amenities           RoomAmenity[]
+  roomPairs2          RoomPair[]           @relation("RoomPair2")
+  roomPairs1          RoomPair[]           @relation("RoomPair1")
+  waitlists           Waitlist[]
+}
+
+model Amenity {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  icon        String?
+  createdAt   DateTime      @default(now())
+  rooms       RoomAmenity[]
+}
+
+model RoomAmenity {
+  id        String   @id @default(cuid())
+  roomId    String
+  amenityId String
+  createdAt DateTime @default(now())
+  amenity   Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, amenityId])
+}
+
+model Booking {
+  id                 String              @id @default(cuid())
+  userId             String
+  roomId             String
+  checkIn            DateTime
+  checkOut           DateTime
+  adults             Int                 @default(1)
+  children           Int                 @default(0)
+  totalPrice         Decimal
+  status             BookingStatus       @default("PENDING")
+  specialRequests    String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  checkInQRCode      String?
+  checkOutQRCode     String?
+  checkInTime        DateTime?
+  checkOutTime       DateTime?
+  room               Room                @relation(fields: [roomId], references: [id])
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingSupplements BookingSupplement[]
+  invoice            Invoice?
+  payments           Payment[]
+  posTransactions    PosTransaction[]
+  restaurantOrders   RestaurantOrder[]
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([checkIn, checkOut])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  bookingId     String        @unique
+  invoiceNumber String        @unique
+  subtotal      Decimal
+  tax           Decimal       @default(0)
+  total         Decimal
+  status        InvoiceStatus @default("DRAFT")
+  issuedAt      DateTime      @default(now())
+  dueDate       DateTime
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String
+  userId        String
+  amount        Decimal
+  status        PaymentStatus @default("PENDING")
+  method        PaymentMethod
+  transactionId String?
+  paymentDate   DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([userId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  roomId    String
+  rating    Int
+  comment   String
+  photos    String
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([userId])
+}
+
+model Season {
+  id           String        @id @default(cuid())
+  name         String
+  type         SeasonType
+  startDate    DateTime
+  endDate      DateTime
+  multiplier   Decimal       @default(1.0)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  pricingRules PricingRule[]
+}
+
+model PricingRule {
+  id           String   @id @default(cuid())
+  seasonId     String
+  roomType     RoomType
+  multiplier   Decimal  @default(1.0)
+  minOccupancy Int?
+  maxOccupancy Int?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  season       Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, roomType])
+}
+
+model LoyaltyPoint {
+  id           String               @id @default(cuid())
+  userId       String               @unique
+  points       Int                  @default(0)
+  tier         LoyaltyTier          @default("BRONZE")
+  totalEarned  Int                  @default(0)
+  totalSpent   Int                  @default(0)
+  tierProgress Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewards      LoyaltyReward[]
+  transactions LoyaltyTransaction[]
+
+  @@index([userId])
+  @@index([tier])
+}
+
+model LoyaltyTransaction {
+  id          String       @id @default(cuid())
+  loyaltyId   String
+  type        String
+  points      Int
+  description String
+  bookingId   String?
+  createdAt   DateTime     @default(now())
+  loyalty     LoyaltyPoint @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+
+  @@index([loyaltyId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model LoyaltyReward {
+  id             String       @id @default(cuid())
+  loyaltyId      String
+  name           String
+  description    String
+  type           String
+  value          Decimal
+  requiredPoints Int
+  isRedeemed     Boolean      @default(false)
+  redeemedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  loyalty        LoyaltyPoint @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+
+  @@index([loyaltyId])
+  @@index([isRedeemed])
+}
+
+model Channel {
+  id          String        @id @default(cuid())
+  name        String
+  apiKey      String
+  propertyId  String
+  isActive    Boolean       @default(true)
+  syncEnabled Boolean       @default(true)
+  lastSyncAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  rooms       ChannelRoom[]
+}
+
+model ChannelRoom {
+  id         String   @id @default(cuid())
+  channelId  String
+  roomId     String
+  externalId String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, roomId])
+}
+
+model CancellationPolicy {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  hoursBeforeCheckIn Int
+  penaltyPercentage  Decimal
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PromoCode {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  description   String?
+  discountType  String
+  discountValue Decimal
+  minAmount     Decimal?
+  maxDiscount   Decimal?
+  validFrom     DateTime
+  validUntil    DateTime
+  maxUses       Int?
+  currentUses   Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Supplement {
+  id                 String              @id @default(cuid())
+  name               String
+  description        String?
+  price              Decimal
+  type               String
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  bookingSupplements BookingSupplement[]
+}
+
+model BookingSupplement {
+  id           String     @id @default(cuid())
+  bookingId    String
+  supplementId String
+  quantity     Int        @default(1)
+  totalPrice   Decimal
+  createdAt    DateTime   @default(now())
+  supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+  booking      Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, supplementId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  userId    String
+  roomId    String
+  checkIn   DateTime
+  checkOut  DateTime
+  adults    Int
+  children  Int
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
+  @@index([checkIn, checkOut])
+}
+
+model RoomPair {
+  id          String   @id @default(cuid())
+  roomId1     String
+  roomId2     String
+  name        String
+  description String?
+  discount    Decimal  @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  room2       Room     @relation("RoomPair2", fields: [roomId2], references: [id], onDelete: Cascade)
+  room1       Room     @relation("RoomPair1", fields: [roomId1], references: [id], onDelete: Cascade)
+
+  @@unique([roomId1, roomId2])
+  @@index([roomId1])
+  @@index([roomId2])
+}
+
+model SpecialOffer {
+  id            String   @id @default(cuid())
+  name          String
+  type          String
+  discount      Decimal
+  minNights     Int?
+  maxNights     Int?
+  minDaysBefore Int?
+  validFrom     DateTime
+  validUntil    DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([type])
+  @@index([validFrom, validUntil])
+  @@index([isActive])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  isStaff   Boolean  @default(false)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
+
+model Task {
+  id           String    @id @default(cuid())
+  title        String
+  description  String?
+  assignedToId String?
+  priority     String    @default("MEDIUM")
+  dueDate      DateTime?
+  status       String    @default("TODO")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
+
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model MaintenanceTask {
+  id           String    @id @default(cuid())
+  roomId       String
+  type         String
+  description  String
+  priority     String    @default("MEDIUM")
+  dueDate      DateTime?
+  assignedToId String?
+  status       String    @default("PENDING")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  assignedTo   User?     @relation("MaintenanceTasks", fields: [assignedToId], references: [id])
+  room         Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model HousekeepingRecord {
+  id           String   @id @default(cuid())
+  roomId       String
+  status       String
+  notes        String?
+  assignedToId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  assignedTo   User?    @relation("HousekeepingRecords", fields: [assignedToId], references: [id])
+  room         Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Product {
+  id                  String               @id @default(cuid())
+  name                String
+  category            String
+  description         String?
+  price               Decimal
+  stock               Int                  @default(0)
+  minStock            Int                  @default(10)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  posTransactionItems PosTransactionItem[]
+  stockMovements      StockMovement[]
+
+  @@index([category])
+  @@index([stock])
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  productId     String
+  quantity      Int
+  reason        String
+  previousStock Int
+  newStock      Int
+  createdAt     DateTime @default(now())
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model PosTransaction {
+  id            String               @id @default(cuid())
+  total         Decimal
+  paymentMethod String
+  status        String               @default("COMPLETED")
+  bookingId     String?
+  userId        String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  user          User?                @relation("PosTransactions", fields: [userId], references: [id])
+  booking       Booking?             @relation(fields: [bookingId], references: [id])
+  items         PosTransactionItem[]
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PosTransactionItem {
+  id            String         @id @default(cuid())
+  transactionId String
+  productId     String
+  quantity      Int
+  price         Decimal
+  createdAt     DateTime       @default(now())
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  transaction   PosTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([productId])
+}
+
+model MenuItem {
+  id          String                @id @default(cuid())
+  name        String
+  category    String
+  description String?
+  price       Decimal
+  available   Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  orderItems  RestaurantOrderItem[]
+
+  @@index([category])
+  @@index([available])
+}
+
+model RestaurantOrder {
+  id              String                @id @default(cuid())
+  bookingId       String?
+  userId          String?
+  type            String
+  total           Decimal
+  specialRequests String?
+  status          String                @default("PENDING")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  user            User?                 @relation("RestaurantOrders", fields: [userId], references: [id])
+  booking         Booking?              @relation(fields: [bookingId], references: [id])
+  items           RestaurantOrderItem[]
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model RestaurantOrderItem {
+  id         String          @id @default(cuid())
+  orderId    String
+  menuItemId String
+  quantity   Int
+  price      Decimal
+  createdAt  DateTime        @default(now())
+  menuItem   MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  order      RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  keys      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  icon      String?
+  data      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+
+  @@index([name])
+}
+
+model Referral {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  code      String        @unique
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uses      ReferralUse[]
+
+  @@index([code])
+  @@index([userId])
+}
+
+model ReferralUse {
+  id             String   @id @default(cuid())
+  referralId     String
+  referredUserId String
+  createdAt      DateTime @default(now())
+  referral       Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  @@index([referralId])
+  @@index([referredUserId])
+}
+
+model CRMRecord {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  email         String
+  firstName     String
+  lastName      String
+  phone         String
+  totalBookings Int       @default(0)
+  totalSpent    Decimal   @default(0)
+  averageRating Decimal   @default(0)
+  loyaltyPoints Int       @default(0)
+  lastBooking   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([totalSpent])
+  @@index([loyaltyPoints])
+}
+
+model RFIDCard {
+  id          String      @id @default(cuid())
+  userId      String
+  cardNumber  String      @unique
+  accessLevel String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  accessLogs  AccessLog[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cardNumber])
+  @@index([userId])
+}
+
+model AccessLog {
+  id            String   @id @default(cuid())
+  cardId        String
+  location      String
+  accessGranted Boolean
+  timestamp     DateTime @default(now())
+  card          RFIDCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+  @@index([timestamp])
+}
+
+enum UserRole {
+  VISITOR
+  ADMIN
+  EDITOR
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  CHECKED_IN
+  CHECKED_OUT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PAYPAL
+  BANK_TRANSFER
+  CASH
+  STRIPE
+}
+
+enum RoomType {
+  STANDARD
+  SUPERIOR
+  SUITE
+  DELUXE
+  FAMILY
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum SeasonType {
+  LOW
+  MEDIUM
+  HIGH
+  PEAK
+}
+
+enum LoyaltyTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+}

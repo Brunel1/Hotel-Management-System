@@ -1,0 +1,15 @@
+# robots.txt pour Gestion Hôtelière
+# Permettre aux robots d'explorer le site
+User-agent: *
+Allow: /
+
+# Interdire l'accès aux routes d'administration
+Disallow: /admin/
+Disallow: /editor/
+Disallow: /api/
+
+# Interdire l'accès aux routes d'authentification
+Disallow: /auth/
+
+# Sitemap
+Sitemap: http://localhost:3000/sitemap.xml

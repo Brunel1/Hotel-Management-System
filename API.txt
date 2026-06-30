@@ -1,0 +1,11 @@
+http://localhost:3001/admin
+http://localhost:3001/admin/users
+http://localhost:3001/admin/rooms
+http://localhost:3001/dashboard
+admin@hotel.mg / Admin123!
+
+
+
+
+
+
