@@ -185,4 +185,3 @@ Ce projet est sous licence MIT.
 Pour toute question ou suggestion :
 - **Téléphone**: +261 32 25 410 02
 - **GitHub Issues**: Ouvrez une issue sur le dépôt GitHub
-- **Email**: herve@hotel.mg
